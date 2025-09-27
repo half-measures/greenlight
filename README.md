@@ -31,3 +31,11 @@ So GET /v1/movies/1 would get details of movie?id = 1
 -The HTTP Router we are using does not allow Conflicting routes in the API, pat, CHI and mux does. This is bad and good depending on use.
 
 -Responses should be JSON(Strings must be ", not '!)
+
+
+
+
+
+
+## Mynotes
+When GO encodes a type of JSON, it looks first to see if it had MarshalJSON method on it, if it has, GO calls this method to decide how to encode it. So it uses the json.Marshaler interface to see if it 'satisfies' the interface. 
