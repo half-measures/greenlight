@@ -20,7 +20,7 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 	// if id is invalid, return 404
 	id, err := app.readIDParam(r)
 	if err != nil {
-		http.NotFound(w, r)
+		app.notFoundResponse(w, r) //goes to errors.go
 		return
 	}
 	// Create new movie struct with ID we got form the URL
@@ -35,7 +35,7 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 	//Encode struct above to json and punch it
 	err = app.writeJSON(w, http.StatusOK, envelope{"movie": movie}, nil)
 	if err != nil {
-		app.logger.Println(err)
-		http.Error(w, "The server encountered a problem and could not process your request.", http.StatusInternalServerError)
+		app.servererrorreponse(w, r, err) //Goes to error.Go we set up
+
 	}
 }
