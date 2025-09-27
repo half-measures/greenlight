@@ -28,3 +28,6 @@ So GET /v1/movies/1 would get details of movie?id = 1
 | POST | /v1/movies | CreatemovieHandler | create new movie |
 |GET | /v1/movies/:id | showMovieHandler | Show details of a movie | 
 
+-The HTTP Router we are using does not allow Conflicting routes in the API, pat, CHI and mux does. This is bad and good depending on use.
+
+-Responses should be JSON(Strings must be ", not '!)

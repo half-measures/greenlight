@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"strconv"
+	"time"
 
-	"github.com/julienschmidt/httprouter"
+	"greenlight.alexedwards.net/internal/data"
 )
 
 // createmovie handler for POST /v1/movies endpoint
@@ -15,17 +15,27 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 
 // GET showmoviehandler endpoint, for now gets id param from current URL and give response
 func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request) {
-	// when httprouter is parsing request, url is stored in request context
-	// lets get it front and center
-	params := httprouter.ParamsFromContext(r.Context())
 
 	// use byname to get value of id param from above slice.
 	// if id is invalid, return 404
-	id, err := strconv.ParseInt(params.ByName("id"), 10, 64)
-	if err != nil || id < 1 {
+	id, err := app.readIDParam(r)
+	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
-	// otherwise, show movie details for now
-	fmt.Fprintf(w, "show the details of the movie %d\n", id)
+	// Create new movie struct with ID we got form the URL
+	movie := data.Movie{
+		ID:        id,
+		CreatedAt: time.Now(),
+		Title:     "Casablanca",
+		Runtime:   102,
+		Genres:    []string{"drama", "romance", "war"},
+		Version:   1,
+	}
+	//Encode struct above to json and punch it
+	err = app.writeJSON(w, http.StatusOK, movie, nil)
+	if err != nil {
+		app.logger.Println(err)
+		http.Error(w, "The server encountered a problem and could not process your request.", http.StatusInternalServerError)
+	}
 }
