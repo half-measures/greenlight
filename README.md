@@ -32,7 +32,7 @@ So GET /v1/movies/1 would get details of movie?id = 1
 
 -Responses should be JSON(Strings must be ", not '!)
 
-
+-json.Decoder will be our pick instead of json.Unmarshal, it needs less code and has more settings we will use.
 
 
 

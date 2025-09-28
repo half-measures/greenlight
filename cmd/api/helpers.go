@@ -5,6 +5,8 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -49,4 +51,62 @@ func (app *application) writeJSON(w http.ResponseWriter, status int, data envelo
 	w.Write(js)
 	return nil
 
+}
+
+// Helps decode JSON from request body as normal. Doing this to avoid
+// letting our public API give too much info away about how it works
+func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst interface{}) error {
+	maxBytes := 1_048_576 //limit size of req to 1mb
+	r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytes))
+
+	//init decoder and do disallow unknown fields on it.
+	//Now if decoder gets a unknown field it will error instead of ignoring it
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+
+	//decode reqest to target
+	err := dec.Decode(dst)
+	if err != nil {
+		//Triage the errors cause and output our own stuff instead
+		var syntaxError *json.SyntaxError
+		var unmarshalTypeError *json.UnmarshalTypeError
+		var invalidUnmarshalError *json.InvalidUnmarshalError
+
+		switch {
+		//use error.as to check if error has type
+		case errors.As(err, &syntaxError):
+			return fmt.Errorf("body contains badly-formed JSON at char %d", syntaxError.Offset)
+
+		//errunexpectedEOF err, check
+		case errors.Is(err, io.ErrUnexpectedEOF):
+			return errors.New("body contains badly-formed JSON")
+
+		//catch any unmarshaltype errors - when JSON value is wrong type for destination
+		case errors.As(err, &unmarshalTypeError):
+			if unmarshalTypeError.Field != "" {
+				return fmt.Errorf("body contains bad JSON type for respective field %q", unmarshalTypeError.Field)
+			}
+			return fmt.Errorf("body contains incorrect JSON type at %d", unmarshalTypeError.Offset)
+
+		//check for EOF error if request is empty
+		case errors.Is(err, io.EOF):
+			return errors.New("body must not be empty")
+
+		//if non-nil pointer gotten, we panic rather than returning error
+		case errors.As(err, &invalidUnmarshalError):
+			panic(err)
+		//for all else, return err as is
+		//Panic be special here, shoulden't be seen under normal ops
+		default:
+			return err
+		}
+	}
+	//call decode using pointer to anon struct as target dest.
+	//If request has only a single JSON value, its a EOF err, if we get anything
+	//else, theres addtional data
+	err = dec.Decode(&struct{}{})
+	if err != io.EOF {
+		return errors.New("body must contains single JSON value")
+	}
+	return nil
 }
