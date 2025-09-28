@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"greenlight.alexedwards.net/internal/data"
+	"greenlight.alexedwards.net/internal/validator"
 )
 
 // createmovie handler for POST /v1/movies endpoint
@@ -13,10 +14,10 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 	//declare anon struct to hold info we expect to be in the http body
 	//Struct will be the *target decode destination
 	var input struct {
-		Title   string        `json:"title"`
-		Year    int32         `json:"year"`
-		Runtime data.Runetime `json:"runtime"`
-		Genres  []string      `json:"genres"`
+		Title   string       `json:"title"`
+		Year    int32        `json:"year"`
+		Runtime data.Runtime `json:"runtime"`
+		Genres  []string     `json:"genres"`
 	}
 	//init new decoder to read from request body and put into input struct
 	//if error during decoder send 400 reponse using our custom errs
@@ -28,6 +29,24 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		app.badRequestResponse(w, r, err)
 		return
 	}
+	movie := &data.Movie{
+		Title:   input.Title,
+		Year:    input.Year,
+		Runtime: input.Runtime,
+		Genres:  input.Genres,
+	}
+
+	v := validator.New()
+	//use check() to exec validation checks.
+	//adds key and error to err map if check is NOT true
+
+	//use Valid Method to check if any blocks have failed. If they did
+	//use failedValidationReponse helper to send reponse to client
+	if data.ValidateMovie(v, movie); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
 	//dump into input struct in http response
 	fmt.Fprintf(w, "%+v\n", input)
 }
