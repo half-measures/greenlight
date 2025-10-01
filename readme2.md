@@ -83,6 +83,8 @@ export GREENLIGHT_DB_DSN='postgres://greenlight:pa55word@localhost/greenlight'
  root =
  sudo -u postgres psql
 
+ \c <database name>
+
 so had a hell of a time getting permisions,
 greenlight user needs to go to the actual DB, and run 
 GRANT ALL ON SCHEMA public TO greenlight;

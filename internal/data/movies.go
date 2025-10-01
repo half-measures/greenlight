@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/lib/pq"
 	"greenlight.alexedwards.net/internal/validator"
 )
 
@@ -26,9 +27,23 @@ type MovieModel struct {
 }
 
 // This method will insert a new record into the movies table
+//accepts a pointer to movie struct, which should have data for new record
+
 func (m MovieModel) Insert(movie *Movie) error {
-	return nil //temp
-}
+	// define SQL query for new record
+	query := `
+	INSERT INTO movies (title, year, runtime, genres)
+	VALUES ($1, $2, $3, $4)
+	RETURNING id, created_at, version`
+
+	//create slice with values , doing this next to the SQL query
+	//makes it clear
+	args := []interface{}{movie.Title, movie.Year, movie.Runtime, pq.Array(movie.Genres)}
+
+	//use QueryRow to exec SQL on connection pool
+	//string gets passes in as variadic parameter
+	return m.DB.QueryRow(query, args...).Scan(&movie.ID, &movie.CreatedAt, &movie.Version)
+} //Insert mutates moviestruct and adds system gen values to it
 
 // This method will fetch a record from the movies table
 func (m MovieModel) Get(id int64) (*Movie, error) {

@@ -8,7 +8,7 @@ import (
 // define cust errnotfound error from our get() method in movies.go
 // given when a movie is not in our database
 var (
-	ErrRecordNotFound = errors.New("Record not found")
+	ErrRecordNotFound = errors.New("record not found")
 )
 
 // models struct to wrap moviemodel -

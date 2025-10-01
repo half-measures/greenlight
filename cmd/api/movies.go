@@ -47,8 +47,28 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// insert() passes a pointer to validated movie struct.
+	// we create a record in the DB and update the struct with new info
+	err = app.models.Movies.Insert(movie)
+	if err != nil {
+		app.serverErrorReponse(w, r, err)
+		return
+	}
+
+	// send http response with location header to let
+	// client know where to find new resource at
+	// make empty header map and set new location
+	headers := make(http.Header)
+	headers.Set("Locaton", fmt.Sprintf("/v1/movies/%d", movie.ID))
+
+	// write JSON response with 201 code status
+	err = app.writeJSON(w, http.StatusCreated, envelope{"movie": movie}, headers)
+	if err != nil {
+		app.serverErrorReponse(w, r, err)
+	}
+
 	//dump into input struct in http response
-	fmt.Fprintf(w, "%+v\n", input)
+	//fmt.Fprintf(w, "%+v\n", input)
 }
 
 // GET showmoviehandler endpoint, for now gets id param from current URL and give response
@@ -73,7 +93,7 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 	//Encode struct above to json and punch it
 	err = app.writeJSON(w, http.StatusOK, envelope{"movie": movie}, nil)
 	if err != nil {
-		app.servererrorreponse(w, r, err) //Goes to error.Go we set up
+		app.serverErrorReponse(w, r, err) //Goes to error.Go we set up
 
 	}
 }

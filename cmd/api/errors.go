@@ -27,7 +27,7 @@ func (app *application) errorResponse(w http.ResponseWriter, r *http.Request, st
 
 // servererrorreponse used when app find problems at runtime, logs detailed message
 // does send a 500 reponse and JSON
-func (app *application) servererrorreponse(w http.ResponseWriter, r *http.Request, err error) {
+func (app *application) serverErrorReponse(w http.ResponseWriter, r *http.Request, err error) {
 	app.logError(r, err)
 
 	message := "Server encountered a problem and could not process your request"

@@ -21,6 +21,6 @@ func (app *application) healthcheckHandler(w http.ResponseWriter, r *http.Reques
 	//pass map to jsonmarshalfunc which returns a byte slice wiht encoded JSON
 	err := app.writeJSON(w, http.StatusOK, env, nil)
 	if err != nil {
-		app.servererrorreponse(w, r, err) //now sent to errors.go
+		app.serverErrorReponse(w, r, err) //now sent to errors.go
 	}
 }
