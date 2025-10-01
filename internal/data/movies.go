@@ -1,6 +1,7 @@
 package data
 
 import (
+	"database/sql"
 	"time"
 
 	"greenlight.alexedwards.net/internal/validator"
@@ -17,6 +18,31 @@ type Movie struct {
 	Runtime   Runtime   `json:"runtime,omitempty"` //in Mins, movie length
 	Genres    []string  `json:"genres,omitempty"`  //slice of genres for movie
 	Version   int32     `json:"version"`           // Version number, starting at 1 and incredmented ea time movie info updated
+}
+
+// moviemodel struct to wrap a SQL.db connection pool
+type MovieModel struct {
+	DB *sql.DB
+}
+
+// This method will insert a new record into the movies table
+func (m MovieModel) Insert(movie *Movie) error {
+	return nil //temp
+}
+
+// This method will fetch a record from the movies table
+func (m MovieModel) Get(id int64) (*Movie, error) {
+	return nil, nil
+}
+
+// This method will update certian records in movie table
+func (m MovieModel) Update(movie *Movie) error {
+	return nil
+}
+
+// This method will delete a record from Movies table
+func (m MovieModel) Delete(id int64) error {
+	return nil
 }
 
 //Validation checks on the movie STRUCT, not input

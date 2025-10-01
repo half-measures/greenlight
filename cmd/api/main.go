@@ -11,6 +11,7 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
+	"greenlight.alexedwards.net/internal/data"
 )
 
 const version = "1.0.0"
@@ -33,6 +34,7 @@ type config struct {
 type application struct {
 	config config
 	logger *log.Logger
+	models data.Models
 }
 
 func main() {
@@ -59,6 +61,7 @@ func main() {
 	if err != nil {
 		logger.Fatal(err)
 	}
+
 	//defer clse so conn pool closed before main func exits
 	defer db.Close()
 
@@ -69,6 +72,7 @@ func main() {
 	app := &application{
 		config: cfg,
 		logger: logger,
+		models: data.NewModels(db),
 	}
 
 	//create http server with timeouts, using port provided
