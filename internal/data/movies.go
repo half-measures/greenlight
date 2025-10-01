@@ -2,6 +2,7 @@ package data
 
 import (
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/lib/pq"
@@ -47,7 +48,44 @@ func (m MovieModel) Insert(movie *Movie) error {
 
 // This method will fetch a record from the movies table
 func (m MovieModel) Get(id int64) (*Movie, error) {
-	return nil, nil
+	//Define SQL query for GET
+	if id < 1 { //This is to align ourselves with postgres as it dosen't have unsigned integers
+		//and to prevent a value more than 92233720365457758....
+		return nil, ErrRecordNotFound
+	}
+
+	query := `
+	SELECT id, created_at, title, year, runtime, genres, version
+	FROM movies
+	WHERE id = $1`
+	//declare Movie struct to hold the movie data
+	var movie Movie
+
+	//Execute using queryrow, scan response data into fields into
+	//movie struct, use pq.array adapter function
+	err := m.DB.QueryRow(query, id).Scan(
+		&movie.ID,
+		&movie.CreatedAt,
+		&movie.Title,
+		&movie.Year,
+		&movie.Runtime,
+		pq.Array(&movie.Genres),
+		&movie.Version,
+	) //if we did not use pq.Array would get an error at runtime
+	//'unsupported Scan...
+
+	//Handle Errors, if no match found scan return sql.errnorows
+	//errs, check for this
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+	//otherwise return pointer to movie struct
+	return &movie, nil
 }
 
 // This method will update certian records in movie table

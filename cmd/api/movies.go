@@ -1,9 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"greenlight.alexedwards.net/internal/data"
 	"greenlight.alexedwards.net/internal/validator"
@@ -81,14 +81,18 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 		app.notFoundResponse(w, r) //goes to errors.go
 		return
 	}
-	// Create new movie struct with ID we got form the URL
-	movie := data.Movie{
-		ID:        id,
-		CreatedAt: time.Now(),
-		Title:     "Casablanca",
-		Runtime:   102,
-		Genres:    []string{"drama", "romance", "war"},
-		Version:   1,
+	//use get method in internal/movies.go to get data for movie
+	//also use errors func to check if we return err recordnotfound errr
+	//if that happens, return 404 to client.
+	movie, err := app.models.Movies.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorReponse(w, r, err)
+		}
+		return
 	}
 	//Encode struct above to json and punch it
 	err = app.writeJSON(w, http.StatusOK, envelope{"movie": movie}, nil)
