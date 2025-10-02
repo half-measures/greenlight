@@ -101,3 +101,60 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 
 	}
 }
+
+func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Request) {
+	//get movieid from URL
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	//fetch existing movie record from DB, sending a 404 not found if no matching record
+	movie, err := app.models.Movies.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorReponse(w, r, err)
+		}
+		return
+	}
+	//input struct to hold expected data from client
+	var input struct {
+		Title   string       `json:"title"`
+		Year    int32        `json:"year"`
+		Runtime data.Runtime `json:"runtime"`
+		Genres  []string     `json:"genres"`
+	}
+	//read Json request body data and put into our above input struct
+	err = app.readJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	//copy stuff form request body to fields of movie record
+	movie.Title = input.Title
+	movie.Year = input.Year
+	movie.Runtime = input.Runtime
+	movie.Genres = input.Genres
+
+	//Validate the movie record, send 422 unprocessable if ANY check fails here
+	v := validator.New()
+	if data.ValidateMovie(v, movie); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	//pass updated movie record into our new Update() method
+	err = app.models.Movies.Update(movie)
+	if err != nil {
+		app.serverErrorReponse(w, r, err)
+		return
+	}
+	//write updated movie record in JSON response
+	err = app.writeJSON(w, http.StatusOK, envelope{"movie": movie}, nil)
+	if err != nil {
+		app.serverErrorReponse(w, r, err)
+	}
+}

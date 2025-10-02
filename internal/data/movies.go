@@ -1,5 +1,6 @@
 package data
 
+//used to change and talk to our DB
 import (
 	"database/sql"
 	"errors"
@@ -90,7 +91,24 @@ func (m MovieModel) Get(id int64) (*Movie, error) {
 
 // This method will update certian records in movie table
 func (m MovieModel) Update(movie *Movie) error {
-	return nil
+	//SQL to update record
+	query := `
+	UPDATE movies
+	SET title = $1, year = $2, runtime = $3, genres = $4, version = version + 1
+	WHERE id = $5
+	RETURNING version`
+
+	//args slice to hold values of placeholder params we overwrite later
+	args := []interface{}{
+		movie.Title,
+		movie.Year,
+		movie.Runtime,
+		pq.Array(movie.Genres),
+		movie.ID,
+	}
+	//queryrow to execute query on arge slice, scan new version into movie struct
+	return m.DB.QueryRow(query, args...).Scan(&movie.Version)
+	//mutate in place again, update wiht new version num only
 }
 
 // This method will delete a record from Movies table
