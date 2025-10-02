@@ -9,6 +9,7 @@ import (
 // given when a movie is not in our database
 var (
 	ErrRecordNotFound = errors.New("record not found")
+	ErrEditConflict   = errors.New("edit conflict") //Added to prevent data race errors
 )
 
 // models struct to wrap moviemodel -
