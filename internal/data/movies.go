@@ -113,6 +113,32 @@ func (m MovieModel) Update(movie *Movie) error {
 
 // This method will delete a record from Movies table
 func (m MovieModel) Delete(id int64) error {
+	//check, return errrecordnotfound if movie if less than 1
+	if id < 1 {
+		return ErrRecordNotFound
+	}
+	//SQL
+	query := `
+	DELETE FROM movies
+	WHERE if = $1`
+
+	//exec SQL query
+	result, err := m.DB.Exec(query, id)
+	if err != nil {
+		return err
+	}
+
+	//call rows affected method on result object
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	// If no rows affected, table did not have record
+	//provide errrecordnotfound error
+	if rowsAffected == 0 {
+		return ErrRecordNotFound
+	}
 	return nil
 }
 
