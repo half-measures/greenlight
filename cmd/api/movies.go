@@ -121,11 +121,12 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	//input struct to hold expected data from client
+	//added pointers to enable partial updates as before we did not allow nil in fields
 	var input struct {
-		Title   string       `json:"title"`
-		Year    int32        `json:"year"`
-		Runtime data.Runtime `json:"runtime"`
-		Genres  []string     `json:"genres"`
+		Title   *string       `json:"title"`
+		Year    *int32        `json:"year"`
+		Runtime *data.Runtime `json:"runtime"`
+		Genres  []string      `json:"genres"`
 	}
 	//read Json request body data and put into our above input struct
 	err = app.readJSON(w, r, &input)
@@ -133,11 +134,22 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		app.badRequestResponse(w, r, err)
 		return
 	}
+	//if input.title is nil then we know no title keyword provided by req
+	//as .title is now a pointer to a string, we can use the * operator to get the value
+	if input.Title != nil {
+		movie.Title = *input.Title
+	}
+	//do same for other fields in the input struct
+	if input.Year != nil {
+		movie.Year = *input.Year
+	}
+	if input.Runtime != nil {
+		movie.Runtime = *input.Runtime
+	}
+	if input.Genres != nil {
+		movie.Genres = input.Genres
+	}
 	//copy stuff form request body to fields of movie record
-	movie.Title = input.Title
-	movie.Year = input.Year
-	movie.Runtime = input.Runtime
-	movie.Genres = input.Genres
 
 	//Validate the movie record, send 422 unprocessable if ANY check fails here
 	v := validator.New()
