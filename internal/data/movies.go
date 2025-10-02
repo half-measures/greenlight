@@ -120,7 +120,7 @@ func (m MovieModel) Delete(id int64) error {
 	//SQL
 	query := `
 	DELETE FROM movies
-	WHERE if = $1`
+	WHERE id = $1`
 
 	//exec SQL query
 	result, err := m.DB.Exec(query, id)
