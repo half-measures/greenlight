@@ -2,6 +2,7 @@ package data
 
 //used to change and talk to our DB
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"time"
@@ -41,10 +42,12 @@ func (m MovieModel) Insert(movie *Movie) error {
 	//create slice with values , doing this next to the SQL query
 	//makes it clear
 	args := []interface{}{movie.Title, movie.Year, movie.Runtime, pq.Array(movie.Genres)}
-
+	//3 sec timeout
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(sql_timeout)*time.Second)
+	defer cancel()
 	//use QueryRow to exec SQL on connection pool
 	//string gets passes in as variadic parameter
-	return m.DB.QueryRow(query, args...).Scan(&movie.ID, &movie.CreatedAt, &movie.Version)
+	return m.DB.QueryRowContext(ctx, query, args...).Scan(&movie.ID, &movie.CreatedAt, &movie.Version)
 } //Insert mutates moviestruct and adds system gen values to it
 
 // This method will fetch a record from the movies table
@@ -54,7 +57,7 @@ func (m MovieModel) Get(id int64) (*Movie, error) {
 		//and to prevent a value more than 92233720365457758....
 		return nil, ErrRecordNotFound
 	}
-
+	//Added sleep as first value for testing --DELETEME
 	query := `
 	SELECT id, created_at, title, year, runtime, genres, version
 	FROM movies
@@ -62,9 +65,13 @@ func (m MovieModel) Get(id int64) (*Movie, error) {
 	//declare Movie struct to hold the movie data
 	var movie Movie
 
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(sql_timeout)*time.Second)
+	defer cancel() //3s timeout delay, SQL must finish within 3s or get out
+	//defer cancel prevents a memory leak!
+	//timeout countdown begins moment context is created in this func
 	//Execute using queryrow, scan response data into fields into
 	//movie struct, use pq.array adapter function
-	err := m.DB.QueryRow(query, id).Scan(
+	err := m.DB.QueryRowContext(ctx, query, id).Scan(
 		&movie.ID,
 		&movie.CreatedAt,
 		&movie.Title,
@@ -107,8 +114,11 @@ func (m MovieModel) Update(movie *Movie) error {
 		movie.ID,
 		movie.Version,
 	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(sql_timeout)*time.Second)
+	defer cancel()
 	//queryrow to execute query on arge slice, scan new version into movie struct
-	err := m.DB.QueryRow(query, args...).Scan(&movie.Version)
+	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&movie.Version)
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -132,8 +142,10 @@ func (m MovieModel) Delete(id int64) error {
 	DELETE FROM movies
 	WHERE id = $1`
 
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(sql_timeout)*time.Second)
+	defer cancel()
 	//exec SQL query
-	result, err := m.DB.Exec(query, id)
+	result, err := m.DB.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
 	}
