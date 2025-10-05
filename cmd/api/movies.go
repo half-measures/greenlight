@@ -237,13 +237,13 @@ func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	//call getall method to get movies, passing in filters if needed
-	movies, err := app.models.Movies.GetAll(input.Title, input.Genres, input.Filters)
+	movies, metadata, err := app.models.Movies.GetAll(input.Title, input.Genres, input.Filters)
 	if err != nil {
 		app.serverErrorReponse(w, r, err)
 		return
 	}
 	//send JSOn response with all movie data, our main API function
-	err = app.writeJSON(w, http.StatusOK, envelope{"movies": movies}, nil)
+	err = app.writeJSON(w, http.StatusOK, envelope{"movies": movies, "metadata": metadata}, nil)
 	if err != nil {
 		app.serverErrorReponse(w, r, err)
 	}

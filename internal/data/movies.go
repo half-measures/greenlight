@@ -184,28 +184,32 @@ func ValidateMovie(v *validator.Validator, movie *Movie) {
 	v.Check(validator.Unique(movie.Genres), "genres", "must not contain duplicate values")
 }
 
-func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, error) {
+func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, Metadata, error) {
 	//SQL query to get all movie records
 	//Has ORDER by in filter.go
 	query := fmt.Sprintf(`
-		SELECT id, created_at, title, year, runtime, genres, version
+		SELECT count(*) OVER(), id, created_at, title, year, runtime, genres, version
 		FROM movies
 		WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '')
 		AND (genres @> $2 OR $2 = '{}')
-		ORDER BY %s %s, id ASC`, filters.sortColumn(), filters.sortDirection())
+		ORDER BY %s %s, id ASC
+		LIMIT $3 OFFSET $4`, filters.sortColumn(), filters.sortDirection())
 
 	//create CTX context with 3s timeout
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(sql_timeout)*time.Second)
 	defer cancel()
 
-	//use QueryContext() to execute the query, returns sql.rows result set
-	rows, err := m.DB.QueryContext(ctx, query, title, pq.Array(genres))
-	if err != nil {
-		return nil, err
-	}
+	args := []interface{}{title, pq.Array(genres), filters.limit(), filters.offset()}
 
+	//use QueryContext() to execute the query, returns sql.rows result set
+	rows, err := m.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, Metadata{}, err // Update this to return an empty Metadata struct.
+	}
+	defer rows.Close()
 	//defer cal to close to allow result set to close before getAll
 	defer rows.Close()
+	totalRecords := 0
 
 	// empty slive to hold movie data
 	movies := []*Movie{}
@@ -214,6 +218,7 @@ func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*M
 		var movie Movie // init new movie struct to hold the data
 		//scan the values from the row into the struct
 		err := rows.Scan(
+			&totalRecords,
 			&movie.ID,
 			&movie.CreatedAt,
 			&movie.Title,
@@ -223,15 +228,16 @@ func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*M
 			&movie.Version,
 		)
 		if err != nil {
-			return nil, err
+			return nil, Metadata{}, err
 		}
 		//add movie struct to slice
 		movies = append(movies, &movie)
 	}
 	//when rows loop above finishes, call rows.err to get any errors
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
 	//if all ok, return slice of movies
-	return movies, nil
+	return movies, metadata, nil
 }
