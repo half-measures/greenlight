@@ -8,9 +8,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
+	"greenlight.alexedwards.net/internal/validator"
 )
 
 // Define envelope Type to add custom envelope map to map[string]interface{}
@@ -109,4 +112,51 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst int
 		return errors.New("body must contains single JSON value")
 	}
 	return nil
+}
+
+// ReadString returns string value from query string
+// returns default value if no matching key found
+func (app *application) readString(qs url.Values, key string, defaultValue string) string {
+	//extract value key from query string. If no key exists return empty ""
+
+	s := qs.Get(key)
+	//if no key exists, or alue empty, return default value
+	if s == "" {
+		return defaultValue
+	}
+	//return string otherwise
+	return s
+}
+
+// readCSV helper reads string value form query string, splits it
+// into slice of comma characters. If no match, return default value
+func (app *application) readCSV(qs url.Values, key string, defaultValue []string) []string {
+	//extract value from query string
+	csv := qs.Get(key)
+	//if no key exists or is empty, return default value
+	if csv == "" {
+		return defaultValue
+	}
+	//otherwise parse value into []string slice and return it
+	return strings.Split(csv, ",")
+}
+
+// readint helper reads string value from query string and converts it to integer
+// returns it then. If no match match return default value
+// If could not convert to integer, record err,
+func (app *application) readInt(qs url.Values, key string, defaultValue int, v *validator.Validator) int {
+	//extract value from query string
+	s := qs.Get(key)
+	//if no key exists or is empty, return default value
+	if s == "" {
+		return defaultValue
+	}
+	//try to convert value to a int. If failes, err message to validator
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		v.AddError(key, "must be a integer value")
+		return defaultValue
+	}
+	//otherwise, return correctly converted integer value
+	return i
 }
