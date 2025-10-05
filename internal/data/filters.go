@@ -1,6 +1,10 @@
 package data
 
-import "greenlight.alexedwards.net/internal/validator"
+import (
+	"strings"
+
+	"greenlight.alexedwards.net/internal/validator"
+)
 
 type Filters struct {
 	Page         int
@@ -18,4 +22,25 @@ func ValidateFilters(v *validator.Validator, f Filters) {
 
 	// check sort param matches value in our safelist
 	v.Check(validator.In(f.Sort, f.SortSafelist...), "sort", "invalid sort value")
+}
+
+// This func checks the client provided sort field matches a entry
+// if it does, extract column name from sot field with stripping
+func (f Filters) sortColumn() string {
+	for _, safeValue := range f.SortSafelist {
+		if f.Sort == safeValue {
+			return strings.TrimPrefix(f.Sort, "-")
+		}
+	}
+	panic("unsafe sort parameter: " + f.Sort)
+
+}
+
+// below is how we sort our API results
+// return sort direction ASC / DESC depending on prefix char of sort field
+func (f Filters) sortDirection() string {
+	if strings.HasPrefix(f.Sort, "-") {
+		return "DESC"
+	}
+	return "ASC"
 }
