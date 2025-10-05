@@ -235,7 +235,17 @@ func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-	//dump stuff int input struct in a http response
-	fmt.Fprintf(w, "%+v\n", input)
+
+	//call getall method to get movies, passing in filters if needed
+	movies, err := app.models.Movies.GetAll(input.Title, input.Genres, input.Filters)
+	if err != nil {
+		app.serverErrorReponse(w, r, err)
+		return
+	}
+	//send JSOn response with all movie data, our main API function
+	err = app.writeJSON(w, http.StatusOK, envelope{"movies": movies}, nil)
+	if err != nil {
+		app.serverErrorReponse(w, r, err)
+	}
 
 }

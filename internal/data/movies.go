@@ -182,3 +182,52 @@ func ValidateMovie(v *validator.Validator, movie *Movie) {
 	v.Check(len(movie.Genres) <= 5, "genres", "must not contain more than 5 genres")
 	v.Check(validator.Unique(movie.Genres), "genres", "must not contain duplicate values")
 }
+
+func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, error) {
+	//SQL query to get all movie records
+	query := `
+		SELECT id, created_at, title, year, runtime, genres, version
+		FROM movies
+		ORDER BY id`
+
+	//create CTX context with 3s timeout
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(sql_timeout)*time.Second)
+	defer cancel()
+
+	//use QueryContext() to execute the query, returns sql.rows result set
+	rows, err := m.DB.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	//defer cal to close to allow result set to close before getAll
+	defer rows.Close()
+
+	// empty slive to hold movie data
+	movies := []*Movie{}
+
+	for rows.Next() {
+		var movie Movie // init new movie struct to hold the data
+		//scan the values from the row into the struct
+		err := rows.Scan(
+			&movie.ID,
+			&movie.CreatedAt,
+			&movie.Title,
+			&movie.Year,
+			&movie.Runtime,
+			pq.Array(&movie.Genres),
+			&movie.Version,
+		)
+		if err != nil {
+			return nil, err
+		}
+		//add movie struct to slice
+		movies = append(movies, &movie)
+	}
+	//when rows loop above finishes, call rows.err to get any errors
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	//if all ok, return slice of movies
+	return movies, nil
+}
