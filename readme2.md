@@ -60,6 +60,7 @@ Once a sec go runs a cleanup to remove expired conn form pools
 We should be explicit on MaxOpenConns value to limit an attack and have a built in throttle, we did 25
 
 Does have rate limiting, with bucket. refils 2 per second
+Note that this app cannot work with its current rate limiting on mutli machines with a load bal. Would be better to emply HAProxy or Nginx as LB
 
 ## SQL used
 

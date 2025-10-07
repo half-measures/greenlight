@@ -65,29 +65,31 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 	//func returing is closure to close over the limiter var
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//call limiter to see if req is permited, if not then return 429
-		ip, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			app.serverErrorReponse(w, r, err)
-			return
-		}
-		mu.Lock() //lock to prevent convurrent exec in code
-		//check if IP alrady in map, if not init a new rate limit and add it
-		if _, found := clients[ip]; !found {
-			clients[ip] = &client{limiter: rate.NewLimiter(2, 4)}
-		}
-		//update last seen time for client
-		clients[ip].lastSeen = time.Now()
-		//call allow on rate limiter for current IP
-		//if req is not allowed, unlock mutex and send 429 resp
-		if !clients[ip].limiter.Allow() {
+		if app.config.limiter.enabled {
+			ip, _, err := net.SplitHostPort(r.RemoteAddr)
+			if err != nil {
+				app.serverErrorReponse(w, r, err)
+				return
+			}
+			mu.Lock() //lock to prevent convurrent exec in code
+			//check if IP alrady in map, if not init a new rate limit and add it
+			if _, found := clients[ip]; !found {
+				clients[ip] = &client{
+					limiter: rate.NewLimiter(rate.Limit(app.config.limiter.rps), app.config.limiter.burst)} //These found in main.go
+			}
+			//update last seen time for client
+			clients[ip].lastSeen = time.Now()
+			//call allow on rate limiter for current IP
+			//if req is not allowed, unlock mutex and send 429 resp
+			if !clients[ip].limiter.Allow() {
+				mu.Unlock()
+				app.rateLimitExceededResponse(w, r)
+				return
+			}
+			//Very imp, unlock mutex before calling next handler in chain
+			//do not use Defer as it means its not unlocked till downstream
 			mu.Unlock()
-			app.rateLimitExceededResponse(w, r)
-			return
 		}
-		//Very imp, unlock mutex before calling next handler in chain
-		//do not use Defer as it means its not unlocked till downstream
-		mu.Unlock()
-
 		next.ServeHTTP(w, r)
 	})
 }
