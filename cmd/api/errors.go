@@ -9,7 +9,10 @@ import (
 
 // Helper for logging error message
 func (app *application) logError(r *http.Request, err error) {
-	app.logger.Println(err)
+	app.logger.PrintError(err, map[string]string{
+		"request_method": r.Method,
+		"request_url":    r.URL.String(),
+	})
 }
 
 // The error messages to client with given error code

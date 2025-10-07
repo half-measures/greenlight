@@ -5,13 +5,13 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"time"
 
 	_ "github.com/lib/pq"
 	"greenlight.alexedwards.net/internal/data"
+	"greenlight.alexedwards.net/internal/jsonlog"
 )
 
 const version = "1.0.0"
@@ -31,9 +31,10 @@ type config struct {
 }
 
 // app struct to hold HTTP depends, helpers, and middleware.
+// Note the custom logger call here
 type application struct {
 	config config
-	logger *log.Logger
+	logger *jsonlog.Logger
 	models data.Models
 }
 
@@ -52,21 +53,21 @@ func main() {
 
 	flag.Parse()
 
-	//
-	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
+	//init cust logger for any err at or above INFO to outscreen
+	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
 
 	//call openDB function to create connection pool
 	//pass in config struct, if err we log it and exit immediately
 	db, err := openDB(cfg)
 	if err != nil {
-		logger.Fatal(err)
+		logger.PrintFatal(err, nil)
 	}
 
 	//defer clse so conn pool closed before main func exits
 	defer db.Close()
 
 	//log nessage saying pool was success
-	logger.Printf("database connection pool established")
+	logger.PrintInfo("database connection pool established", nil)
 
 	//declare logger struct from app struct
 	app := &application{
@@ -85,9 +86,12 @@ func main() {
 	}
 
 	//start the server baby
-	logger.Printf("starting %s server on %s", cfg.env, srv.Addr)
+	logger.PrintInfo("starting API server", map[string]string{
+		"addr": srv.Addr,
+		"env":  cfg.env,
+	})
 	err = srv.ListenAndServe()
-	logger.Fatal(err)
+	logger.PrintFatal(err, nil)
 
 }
 
