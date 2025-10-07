@@ -6,6 +6,8 @@ package main
 import (
 	"fmt"
 	"net/http"
+
+	"golang.org/x/time/rate"
 )
 
 func (app *application) recoverPanic(next http.Handler) http.Handler {
@@ -27,3 +29,20 @@ func (app *application) recoverPanic(next http.Handler) http.Handler {
 }
 
 //this is all wrapped in router in routes.go
+
+// /below is a rate limit middleware, were using global empty bucket method
+func (app *application) rateLimit(next http.Handler) http.Handler {
+	//init new rate limiter to allow avg of 2 reqs per sec,
+	//4 for max burst
+	limiter := rate.NewLimiter(2, 4)
+
+	//func returing is closure to close over the limiter var
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		//call limiter to see if req is permited, if not then return 429
+		if !limiter.Allow() {
+			app.rateLimitExceededResponse(w, r) //calling in errors.go
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
