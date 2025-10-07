@@ -6,8 +6,8 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-func (app *application) routes() *httprouter.Router {
-	//init new router intance
+func (app *application) routes() http.Handler {
+	//init new router instance
 	router := httprouter.New()
 
 	//custom errors.go for 404 handling
@@ -24,5 +24,5 @@ func (app *application) routes() *httprouter.Router {
 	router.HandlerFunc(http.MethodDelete, "/v1/movies/:id", app.deleteMovieHandler)
 
 	//return routerhttp instance
-	return router
+	return app.recoverPanic(router)
 }
