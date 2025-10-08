@@ -94,24 +94,29 @@ func ValidateUser(v *validator.Validator, user *User) {
 // to read them into user struc after insert
 func (m UserModel) Insert(user *User) error {
 	query := `
-	INSERT INTO users (name, email, password_hash, activated)
-	VALUES ($1, $2, $3, $4)
-	RETURNING id, created_at, version`
+        INSERT INTO users (name, email, password_hash, activated) 
+        VALUES ($1, $2, $3, $4)
+        RETURNING id, created_at, version`
+
 	args := []interface{}{user.Name, user.Email, user.Password.hash, user.Activated}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	//if table already has record with email address, we dont want to insert
-	//table is UNIQUE on that column, return err if so
+
+	// If the table already contains a record with this email address, then when we try
+	// to perform the insert there will be a violation of the UNIQUE "users_email_key"
+	// constraint that we set up in the previous chapter. We check for this error
+	// specifically, and return custom ErrDuplicateEmail error instead.
 	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.CreatedAt, &user.Version)
 	if err != nil {
 		switch {
-		case err.Error() == `pq: duplicate key value violates unique constraint "user_email_key"`:
+		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
 			return ErrDuplicateEmail
 		default:
 			return err
 		}
 	}
+
 	return nil
 }
 
