@@ -15,11 +15,13 @@ var (
 // models struct to wrap moviemodel -
 type Models struct {
 	Movies MovieModel
+	Users  UserModel
 }
 
 // this method below returns models struct with init movieModel
 func NewModels(db *sql.DB) Models {
 	return Models{
 		Movies: MovieModel{DB: db},
+		Users:  UserModel{DB: db},
 	} //Done to help later on
 }
