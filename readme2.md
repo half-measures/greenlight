@@ -61,6 +61,11 @@ We should be explicit on MaxOpenConns value to limit an attack and have a built 
 
 Does have rate limiting, with bucket. refils 2 per second
 Note that this app cannot work with its current rate limiting on mutli machines with a load bal. Would be better to emply HAProxy or Nginx as LB
+# Rate limiting can be anabled with 'go run ./amd/api/ -limiter-enabled=false
+it is true by default
+
+# graceful shutdown & start 
+has a running goroutine running at all times to listen for sig signals, and waiting
 
 ## SQL used
 
