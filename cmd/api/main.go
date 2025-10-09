@@ -10,6 +10,7 @@ import (
 	_ "github.com/lib/pq"
 	"greenlight.alexedwards.net/internal/data"
 	"greenlight.alexedwards.net/internal/jsonlog"
+	"greenlight.alexedwards.net/internal/mailer"
 )
 
 const version = "1.0.0"
@@ -32,6 +33,13 @@ type config struct {
 		burst   int
 		enabled bool
 	}
+	smtp struct { //holds email info
+		host     string
+		port     int
+		username string
+		password string
+		sender   string
+	}
 }
 
 // app struct to hold HTTP depends, helpers, and middleware.
@@ -40,10 +48,12 @@ type application struct {
 	config config
 	logger *jsonlog.Logger
 	models data.Models
+	mailer mailer.Mailer
 }
 
 func main() {
-	var cfg config //declare config struct
+	var cfg config         //declare config struct
+	secrets := getSecret() //from secrets.go and our config file
 
 	//read value of port and env cmd line flags in struct
 	//default to 4000 and dev if no flags given
@@ -60,6 +70,15 @@ func main() {
 	flag.Float64Var(&cfg.limiter.rps, "limiter-rps", 2, "Rate limiter maximum requests per second")
 	flag.IntVar(&cfg.limiter.burst, "limiter-burst", 4, "Rate limiter maximum burst")
 	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", true, "enabled Rate limiter")
+
+	username := secrets.MailtrapUsername //getting returned fields
+	password := secrets.MailtrapPassword
+	//read SMTP server config settings into config struct
+	flag.StringVar(&cfg.smtp.host, "smtp-host", "smtp.mailtrap.io", "SMTP host")
+	flag.IntVar(&cfg.smtp.port, "smtp-port", 587, "SMTP port") //port 25 failed for some reason
+	flag.StringVar(&cfg.smtp.username, "smtp-username", username, "SMTP username")
+	flag.StringVar(&cfg.smtp.password, "smtp-password", password, "SMTP password")
+	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Greenlight <no-reply@greenlight.alexedwards.net>", "SMTP sender")
 
 	flag.Parse()
 
@@ -84,7 +103,8 @@ func main() {
 		config: cfg,
 		logger: logger,
 		models: data.NewModels(db),
-	}
+		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
+	} //Mailer instance into application struct
 
 	//create http server with timeouts, using port provided - moved to server.go
 	err = app.serve()

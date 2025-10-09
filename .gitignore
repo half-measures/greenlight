@@ -1,0 +1,16 @@
+# Go dependencies
+*.o
+*.a
+*.so
+
+# Go binary and build output
+*.exe
+*.test
+*.prof
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+#SECRETS 
+config.json
