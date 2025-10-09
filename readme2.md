@@ -38,6 +38,9 @@ So GET /v1/movies/1 would get details of movie?id = 1
 
 
 ## Mynotes
+
+-Program API requires a config.json in the root folder to run with mailtrap user/pass/port settings. Program checks for this and exits if not found. Todo below deals with making this not a requirement and more of a toggle setting later.
+
 When GO encodes a type of JSON, it looks first to see if it had MarshalJSON method on it, if it has, GO calls this method to decide how to encode it. So it uses the json.Marshaler interface to see if it 'satisfies' the interface. 
 
 DSN = Data Source Name, lol
@@ -97,3 +100,8 @@ GRANT ALL ON SCHEMA public TO greenlight;
 
 ## sql errors wiht migrations
 So when you get a error, all SQL will have been executed up to that spot. Its possible the sql was partially applied at that spot. Its best to just drop, and rebuild the table from scratch
+
+
+
+### TODO
+-Uncouple the need for config.json, make it just say i guess no emails then, and then continue the program. Would mean just editing the returns so its not os.exit in secrets.go, and keep on going, and prob edit the returns in mailer.go/users.go (cmd/api version)
