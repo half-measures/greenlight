@@ -43,7 +43,18 @@ func (app *application) serve() error {
 		defer cancel()
 		//call shutdown on serverm passin in ctx
 		//will return nil if gracefulshutdown was good or err
-		shutdownError <- srv.Shutdown(ctx)
+		err := srv.Shutdown(ctx)
+		if err != nil {
+			shutdownError <- err
+		}
+		//log message that were waiting for background goroutines to complete
+		app.logger.PrintInfo("Completing background tasks", map[string]string{
+			"addr": srv.Addr,
+		})
+		//Call wait to block till waitGroup counter is zero
+		//block till routines have completes
+		app.wg.Wait()
+		shutdownError <- nil
 	}()
 	//display starting server message
 	app.logger.PrintInfo("starting server", map[string]string{

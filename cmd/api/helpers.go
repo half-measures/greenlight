@@ -160,3 +160,27 @@ func (app *application) readInt(qs url.Values, key string, defaultValue int, v *
 	//otherwise, return correctly converted integer value
 	return i
 }
+
+// help function to try  and wrap the recovering logic
+// uses Go's first class functions, where functions can be assigned to variables
+// and passed as parameters to other functions
+// background accepts any function wiht func() as param, stores it in fn var
+// its in the backgroun to try and recover any panic and logs err,
+func (app *application) background(fn func()) {
+	// Increment the WaitGroup counter.
+	app.wg.Add(1)
+
+	// Launch the background goroutine.
+	go func() {
+		// Use defer to decrement the WaitGroup counter before the goroutine returns.
+		defer app.wg.Done()
+
+		defer func() {
+			if err := recover(); err != nil {
+				app.logger.PrintError(fmt.Errorf("%s", err), nil)
+			}
+		}()
+
+		fn()
+	}()
+}

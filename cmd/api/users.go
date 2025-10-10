@@ -65,16 +65,18 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		}
 		return
 	}
-	go func() {
-		//below we send our user welcome email using smtp flag settings in main.go
+	// Use the background helper to execute an anonymous function that sends the welcome
+	// email.
+	app.background(func() {
 		err = app.mailer.Send(user.Email, "user_welcome.tmpl", user)
 		if err != nil {
 			app.logger.PrintError(err, nil)
-
 		}
-		//Launch a concurrent Goroutine to run anon func to send the welcome email
-		//doing this means program will go on its merry way long after this takes to run
-	}() //end concurrent goroutine
+	})
+
+	//Launch a concurrent Goroutine to run anon func to send the welcome email
+	//doing this means program will go on its merry way long after this takes to run
+	//end concurrent goroutine
 
 	// Write a JSON response containing the user data along with a 201 Created status
 	// code.
