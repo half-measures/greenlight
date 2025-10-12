@@ -39,6 +39,8 @@ So GET /v1/movies/1 would get details of movie?id = 1
 
 ## Mynotes
 
+
+
 -Program API requires a config.json in the root folder to run with mailtrap user/pass/port settings. Program checks for this and exits if not found. Todo below deals with making this not a requirement and more of a toggle setting later.
 
 When GO encodes a type of JSON, it looks first to see if it had MarshalJSON method on it, if it has, GO calls this method to decide how to encode it. So it uses the json.Marshaler interface to see if it 'satisfies' the interface. 
@@ -105,3 +107,15 @@ So when you get a error, all SQL will have been executed up to that spot. Its po
 
 ### TODO
 -Uncouple the need for config.json, make it just say i guess no emails then, and then continue the program. Would mean just editing the returns so its not os.exit in secrets.go, and keep on going, and prob edit the returns in mailer.go/users.go (cmd/api version)
+
+
+### Authentication notes
+1. Basic HTTP - works well till you want to do more than pass/user names
+2. token auth - 2 types
+    a. Stateful Token Auth - token stored in server DB, with expire time. Token is looked at with each req to see if still valid, if it is, were good. API controls the tokens BUT complex for all clients. and database lookups are annoying
+    b. Statless Token Auth - Encoded userid and expire in token itself. Can be done with JWT. Nice to use as token in memory, no DB lookups, BUT can't easily be revoked once issued.
+3. API Key auth - Non expiring secret key with account that they worrie about and use. Nice but user now has two items to worry about, account pass and API key. Also adds burden on us, we need to provide a way to re-gen or revoke keys
+4. OAuth 2.0 - Not good for userAuth. Checks a third party identity. Requires all users to have a account with identiy provider., not ideal for our standalone API.
+
+We pick Stateful Auth to set up
+

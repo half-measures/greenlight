@@ -125,7 +125,7 @@ func (m UserModel) Insert(user *User) error {
 // we have uniq constraint, so SQL will return 1 record or 0 only
 func (m UserModel) GetByEmail(email string) (*User, error) {
 	query := `
-	SELECT if, created_at, name, email, password_hash, activated, version
+	SELECT id, created_at, name, email, password_hash, activated, version
 	FROM users
 	WHERE email = $1`
 	var user User
