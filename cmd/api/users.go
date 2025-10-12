@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"greenlight.alexedwards.net/internal/data"
 	"greenlight.alexedwards.net/internal/validator"
@@ -65,10 +66,23 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		}
 		return
 	}
+
+	token, err := app.models.Tokens.New(user.ID, 3*24*time.Hour, data.ScopeActivation)
+	if err != nil {
+		app.serverErrorReponse(w, r, err)
+		return
+	}
+
 	// Use the background helper to execute an anonymous function that sends the welcome
 	// email.
 	app.background(func() {
-		err = app.mailer.Send(user.Email, "user_welcome.tmpl", user)
+		data := map[string]interface{}{
+			"activationToken": token.Plaintext,
+			"userID":          user.ID,
+		}
+		//send welcome email, passing in map above as dynamic data
+
+		err = app.mailer.Send(user.Email, "user_welcome.tmpl", data)
 		if err != nil {
 			app.logger.PrintError(err, nil)
 		}
