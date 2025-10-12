@@ -25,6 +25,10 @@ func (app *application) routes() http.Handler {
 
 	//Route below for POST users endpoint to create a user
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
+	//Put rather than post for idempotenty
+	//
+	router.HandlerFunc(http.MethodPut, "/v1/users/activated", app.activateUserHandler)
+
 	//return routerhttp instance
 	return app.recoverPanic(app.rateLimit(router))
 }
