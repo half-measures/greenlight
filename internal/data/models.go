@@ -14,16 +14,18 @@ var (
 
 // models struct to wrap moviemodel -
 type Models struct {
-	Movies MovieModel
-	Tokens TokenModel
-	Users  UserModel
+	Movies      MovieModel
+	Permissions PermissionModel //added for avail to handlers and middleware
+	Tokens      TokenModel
+	Users       UserModel
 }
 
 // this method below returns models struct with init movieModel
 func NewModels(db *sql.DB) Models {
 	return Models{
-		Movies: MovieModel{DB: db},
-		Tokens: TokenModel{DB: db},
-		Users:  UserModel{DB: db},
+		Movies:      MovieModel{DB: db},
+		Permissions: PermissionModel{DB: db},
+		Tokens:      TokenModel{DB: db},
+		Users:       UserModel{DB: db},
 	} //Done to help later on
 }
