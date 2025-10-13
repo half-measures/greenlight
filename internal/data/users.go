@@ -11,6 +11,8 @@ import (
 	"greenlight.alexedwards.net/internal/validator"
 )
 
+var AnonymousUser = &User{}
+
 var (
 	ErrDuplicateEmail = errors.New("duplicate email")
 )
@@ -35,6 +37,11 @@ type password struct {
 	plaintext *string
 	hash      []byte
 }
+
+// check for user Anonymous
+func (u *User) IsAnonymous() bool {
+	return u == AnonymousUser
+} //New anon user with pointer to user struct with a user with no id or pass
 
 // set() method calc the hash of plaintext password, stores is in the struct
 func (p *password) Set(plaintextPassword string) error {

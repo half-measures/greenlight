@@ -4,13 +4,17 @@ package main
 //and log a err message and stack trace
 //with below we want to do the same, but send a 500 err
 import (
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
 	"golang.org/x/time/rate"
+	"greenlight.alexedwards.net/internal/data"
+	"greenlight.alexedwards.net/internal/validator"
 )
 
 func (app *application) recoverPanic(next http.Handler) http.Handler {
@@ -90,6 +94,60 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 			//do not use Defer as it means its not unlocked till downstream
 			mu.Unlock()
 		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// func meant to give valid Auth header then user struct to store in req cntext
+// If no Auth given Anon struct engaged instead.
+// If Auth is provided but messedup, 401 is return
+func (app *application) authenticate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Vary", "Authorization")
+		//ADd vary Auth header to response to tell cache that results may vary
+		//get auth header from the request
+		//Get value of the Auth header form the request, returns "" if no header found
+		authorizationHeader := r.Header.Get("Authorization")
+		//If no Auth header found, cntextSetUser helper from context.go helps
+		//call next hanlder in chain without executing stuff below
+		if authorizationHeader == "" {
+			r = app.contextSetUser(r, data.AnonymousUser)
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		//Otherwise Auth header should be in bearer token form
+		//if not, return 401 unauth resp
+		headerParts := strings.Split(authorizationHeader, " ")
+		if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+			app.invalidAuthenticationTokenResponse(w, r)
+			return
+		}
+
+		//extract auth token from header parts finally
+		token := headerParts[1]
+		//validate token using validator.go
+		v := validator.New()
+
+		//if not valid, use invalidtokenrespnse() helper
+		if data.ValidateTokenPlaintext(v, token); !v.Valid() {
+			app.invalidAuthenticationTokenResponse(w, r)
+			return
+		}
+		//get details of user with auth token helper used once more
+		user, err := app.models.Users.GetForToken(data.ScopeAuthentication, token)
+		if err != nil {
+			switch {
+			case errors.Is(err, data.ErrRecordNotFound):
+				app.invalidAuthenticationTokenResponse(w, r)
+			default:
+				app.serverErrorReponse(w, r, err)
+
+			}
+			return
+		}
+		r = app.contextSetUser(r, user)
+		//call next handler in the chain
 		next.ServeHTTP(w, r)
 	})
 }
