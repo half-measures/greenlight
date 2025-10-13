@@ -154,26 +154,59 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 
 // below this should all requireAuth user before being executed itself.
 // Should not be checking if user is active unless we know who they are
-func (app *application) requireActivatedUser(next http.HandlerFunc) http.HandlerFunc {
-	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		user := app.contextGetUser(r)
-		//if user is anony, use this response to tell them to auth fo us
-		if !user.Activated {
-			app.inactiveAccountResponse(w, r)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-	return app.requireActivatedUser(fn)
-} //Check to see if user is not anon
-func (app *application) requireAuthenticatedUser(next http.HandlerFunc) http.HandlerFunc {
+// Check to see if user is not anon
+func (app *application) requireActivatedUser(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Use the contextGetUser() helper that we made earlier to retrieve the user
+		// information from the request context.
 		user := app.contextGetUser(r)
+
+		// If the user is anonymous, then call the authenticationRequiredResponse() to
+		// inform the client that they should authenticate before trying again.
 		if user.IsAnonymous() {
 			app.authenticationRequiredResponse(w, r)
 			return
 		}
+
+		// If the user is not activated, use the inactiveAccountResponse() helper to
+		// inform them that they need to activate their account.
+		if !user.Activated {
+			app.inactiveAccountResponse(w, r)
+			return
+		}
+
+		// Call the next handler in the chain.
 		next.ServeHTTP(w, r)
 	})
+}
+
+// Middleware to check three checks
+// is req from a Auth Non-Anon activated user who has correct permissions?
+func (app *application) requirePermission(code string, next http.HandlerFunc) http.HandlerFunc {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		// Retrieve the user from the request context.
+		user := app.contextGetUser(r)
+
+		// Get the slice of permissions for the user.
+		permissions, err := app.models.Permissions.GetAllForUser(user.ID)
+		if err != nil {
+			app.serverErrorReponse(w, r, err)
+			return
+		}
+
+		// Check if the slice includes the required permission. If it doesn't, then
+		// return a 403 Forbidden response.
+		if !permissions.Include(code) {
+			app.notPermittedResponse(w, r)
+			return
+		}
+
+		// Otherwise they have the required permission so we call the next handler in
+		// the chain.
+		next.ServeHTTP(w, r)
+	}
+
+	// Wrap this with the requireActivatedUser() middleware before returning it.
+	return app.requireActivatedUser(fn)
 }
