@@ -210,3 +210,25 @@ func (app *application) requirePermission(code string, next http.HandlerFunc) ht
 	// Wrap this with the requireActivatedUser() middleware before returning it.
 	return app.requireActivatedUser(fn)
 }
+
+// to prevent cross site scripting ability via Javascript, we want all from the same orgin
+func (app *application) enableCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		w.Header().Add("Vary", "Origin")
+		//get orgin from header
+		origin := r.Header.Get("Origin")
+		//only run this part if Orgin req present and trusted orgin is given in CLI on main.go
+		if origin != "" && len(app.config.cors.trustedOrigins) != 0 {
+			//loop thru trusted orgins if mutliple
+			for i := range app.config.cors.trustedOrigins {
+				if origin == app.config.cors.trustedOrigins[i] {
+					//if match, set response header with req orgin as value
+					w.Header().Set("Access-Control-Allow-Origin", origin)
+				}
+			}
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}

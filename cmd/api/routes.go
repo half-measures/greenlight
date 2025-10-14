@@ -33,5 +33,6 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPost, "/v1/tokens/authentication", app.createAuthenticationTokenHandler)
 
 	//return routerhttp instance
-	return app.recoverPanic(app.rateLimit(app.authenticate(router)))
+	//we put enableCORS early in the chain, after Ratelimiter to help blocking
+	return app.recoverPanic(app.enableCORS(app.rateLimit(app.authenticate(router))))
 }

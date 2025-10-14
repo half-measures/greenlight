@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"flag"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -40,6 +41,10 @@ type config struct {
 		username string
 		password string
 		sender   string
+	}
+	//for middleware.go - prevent CORS
+	cors struct {
+		trustedOrigins []string
 	}
 }
 
@@ -81,6 +86,13 @@ func main() {
 	flag.StringVar(&cfg.smtp.username, "smtp-username", username, "SMTP username")
 	flag.StringVar(&cfg.smtp.password, "smtp-password", password, "SMTP password")
 	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Greenlight <no-reply@greenlight.alexedwards.net>", "SMTP sender")
+
+	//Flag.Func to process cors trusted origins CLI flag at runtime
+	//we split it and assign it to our config struct
+	flag.Func("cors-trusted-origins", "Trusted CORS origins (space separated)", func(val string) error {
+		cfg.cors.trustedOrigins = strings.Fields(val)
+		return nil
+	})
 
 	flag.Parse()
 
