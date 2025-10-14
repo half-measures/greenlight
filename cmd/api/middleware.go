@@ -5,6 +5,7 @@ package main
 //with below we want to do the same, but send a 500 err
 import (
 	"errors"
+	"expvar"
 	"fmt"
 	"net"
 	"net/http"
@@ -241,5 +242,31 @@ func (app *application) enableCORS(next http.Handler) http.Handler {
 		}
 
 		next.ServeHTTP(w, r)
+	})
+}
+
+//This will record custom req level metrics for our ap
+//getting Total # of Req rec, Total# of responses sent, Total time in microSeconds taken to response
+//all in integers
+
+func (app *application) metrics(next http.Handler) http.Handler {
+	//init new var when middleware first build
+	totalRequestsReceived := expvar.NewInt("total_requests_received")
+	totalResponsesSent := expvar.NewInt("total_responses_sent")
+	totalProcessingTimeMicroseconds := expvar.NewInt("total_processing_time_μs")
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		//record time we started to process request
+		start := time.Now()
+		//use add to + num of reqs by 1
+		totalRequestsReceived.Add(1)
+
+		next.ServeHTTP(w, r)
+		//on way back up, +
+		totalResponsesSent.Add(1)
+		//calc microseconds since we began
+		duration := time.Now().Sub(start).Microseconds()
+		totalProcessingTimeMicroseconds.Add(duration)
+
 	})
 }
