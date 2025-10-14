@@ -216,6 +216,7 @@ func (app *application) enableCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		w.Header().Add("Vary", "Origin")
+		w.Header().Add("Vary", "Access-Control-Request-Method")
 		//get orgin from header
 		origin := r.Header.Get("Origin")
 		//only run this part if Orgin req present and trusted orgin is given in CLI on main.go
@@ -225,6 +226,16 @@ func (app *application) enableCORS(next http.Handler) http.Handler {
 				if origin == app.config.cors.trustedOrigins[i] {
 					//if match, set response header with req orgin as value
 					w.Header().Set("Access-Control-Allow-Origin", origin)
+					//chk if req has HTTP method options and has request-method header
+					//if so, treat as preflight request
+					if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
+						//set preflight headers
+						w.Header().Set("Access-Control-Allow-Methods", "OPTIONS, PUT, PATCH, DELETE")
+						w.Header().Set("Access-Control-Allow-Methods", "Authorization, Content-Type")
+						//write headers with 200 OK status and return frm Middleware with no action
+						w.WriteHeader(http.StatusOK)
+						return
+					}
 				}
 			}
 		}
