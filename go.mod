@@ -5,6 +5,7 @@ go 1.24.5
 require github.com/julienschmidt/httprouter v1.3.0
 
 require (
+	github.com/felixge/httpsnoop v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-mail/mail/v2 v2.3.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
