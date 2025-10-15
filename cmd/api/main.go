@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"expvar"
 	"flag"
+	"fmt"
 	"os"
 	"runtime"
 	"strings"
@@ -17,7 +18,10 @@ import (
 	"greenlight.alexedwards.net/internal/mailer"
 )
 
-const version = "1.0.0"
+var (
+	buildTime string
+	verison   string
+)
 
 // Declare string for app V number. for now we hardcode
 
@@ -95,8 +99,15 @@ func main() {
 		cfg.cors.trustedOrigins = strings.Fields(val)
 		return nil
 	})
-
+	displayVersion := flag.Bool("version", false, "Display version and exit")
 	flag.Parse()
+
+	//if version flag = true, print ver num and exit
+	if *displayVersion {
+		fmt.Printf("Version:\t%s\n", version)
+		fmt.Printf("Build time:\t%s\n", buildTime)
+		os.Exit(0)
+	}
 
 	//init cust logger for any err at or above INFO to outscreen
 	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
