@@ -16,4 +16,4 @@ Thumbs.db
 config.json
 
 .envrc
-
+bin/
