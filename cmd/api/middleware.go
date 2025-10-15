@@ -7,7 +7,6 @@ import (
 	"errors"
 	"expvar"
 	"fmt"
-	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -15,6 +14,7 @@ import (
 	"time"
 
 	"github.com/felixge/httpsnoop"
+	"github.com/tomasen/realip"
 	"golang.org/x/time/rate"
 	"greenlight.alexedwards.net/internal/data"
 	"greenlight.alexedwards.net/internal/validator"
@@ -73,17 +73,17 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//call limiter to see if req is permited, if not then return 429
 		if app.config.limiter.enabled {
-			ip, _, err := net.SplitHostPort(r.RemoteAddr)
-			if err != nil {
-				app.serverErrorReponse(w, r, err)
-				return
-			}
+			//with our reverse proxy, must use realip
+
+			ip := realip.FromRequest(r)
+
 			mu.Lock() //lock to prevent convurrent exec in code
 			//check if IP alrady in map, if not init a new rate limit and add it
 			if _, found := clients[ip]; !found {
 				clients[ip] = &client{
 					limiter: rate.NewLimiter(rate.Limit(app.config.limiter.rps), app.config.limiter.burst)} //These found in main.go
 			}
+
 			//update last seen time for client
 			clients[ip].lastSeen = time.Now()
 			//call allow on rate limiter for current IP
