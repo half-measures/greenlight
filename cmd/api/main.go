@@ -20,7 +20,7 @@ import (
 
 var (
 	buildTime string
-	verison   string
+	version   string
 )
 
 // Declare string for app V number. for now we hardcode
