@@ -1,4 +1,4 @@
-bin will contain binaries 
+bin has contain binaries 
 cmd/api has main.go, does main server, reading and writing HTTP and auth
 internal has API packages, does database interaction
 migrations has the SQL migration files for the DB
@@ -6,7 +6,9 @@ remote has the config files and setup for eventual linux server
 makefile has recipes for common admin tasks like audits, DB migrations
 
 To run, currently we
-go run ./cmd/api
+go run ./cmd/api in root or make run/api
+
+The setup is somewhat flawed, with permissions needing to be manually set. But it does work. 
 
 
 
@@ -38,8 +40,6 @@ So GET /v1/movies/1 would get details of movie?id = 1
 
 
 ## Mynotes
-
-
 
 -Program API requires a config.json in the root folder to run with mailtrap user/pass/port settings. Program checks for this and exits if not found. Todo below deals with making this not a requirement and more of a toggle setting later.
 
@@ -88,7 +88,7 @@ CREATE EXTENSION IF NOT EXISTS citext;
 
 can use website PGTUNE to fine tune the config file on the fly
 ## below is a required export forthe DSN to work
-storing as a ENV variable in the machine itsef. Docker may not liek this
+storing as a ENV variable in the machine itsef for testing.
 export GREENLIGHT_DB_DSN='postgres://greenlight:pa55word@localhost/greenlight'
  
  root =
@@ -96,14 +96,11 @@ export GREENLIGHT_DB_DSN='postgres://greenlight:pa55word@localhost/greenlight'
 
  \c <database name>
 
-so had a hell of a time getting permisions,
 greenlight user needs to go to the actual DB, and run 
 GRANT ALL ON SCHEMA public TO greenlight;
 
 ## sql errors wiht migrations
 So when you get a error, all SQL will have been executed up to that spot. Its possible the sql was partially applied at that spot. Its best to just drop, and rebuild the table from scratch
-
-
 
 ### TODO
 -Uncouple the need for config.json, make it just say i guess no emails then, and then continue the program. Would mean just editing the returns so its not os.exit in secrets.go, and keep on going, and prob edit the returns in mailer.go/users.go (cmd/api version)
@@ -119,3 +116,30 @@ So when you get a error, all SQL will have been executed up to that spot. Its po
 
 We pick Stateful Auth to set up
 
+### howto
+# to just get one
+curl 35.94.234.225:4000/v1/movies/2
+# to insert into DB - 
+BODY='{"title":"Black Panther","year":2018,"runtime":"134 mins","genres":["action","adventure"]}'
+curl -d "$BODY" 35.94.234.225:4000/v1/movies
+or 
+BODY='{"title":"Deadpool","year":2016, "runtime":"108 mins","genres":["action","comedy"]}'
+BODY='{"title":"The Breakfast Club","year":1986, "runtime":"96 mins","genres":["drama"]}'
+
+# Updating a movie
+BODY='{"title":"Black Panther","year":2018,"runtime":"134 mins","genres":["sci-fi","action","adventure"]}'
+curl -X PUT -d "$BODY" localhost:4000/v1/movies/2
+
+# Register a new user
+POST /v1/users endpoint
+BODY='{"name": "Alice Smith", "email": "alice@example.com", "password": "pa55word"}'
+curl -i -d "$BODY" 35.94.234.225:4000/v1/users
+
+# activate a user
+curl -X PUT -d '{"token": "ABCDEFGHIJKLMNOPQRSTUVWXYZ"}' 35.94.234.225:4000/v1/users/activated
+curl -X PUT -d '{"token": "47KKNWQYFTCPSY4077KSEYPE34"} 35.94.234.225:4000/v1/users/activated
+IDXYR4T3YMKXU7EFKX7VX2Q6PI
+# healthcheck
+
+# systems check
+curl -X GET http://35.94.234.225:4000/debug/vars
