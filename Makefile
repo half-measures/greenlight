@@ -79,7 +79,7 @@ build/api:
 	GOOS=linux GOARCH=amd64 go build -ldflags=${linker_flags} -o=./bin/linux_amd64/api ./cmd/api
 
 ### PRODUCTION
-production_host_ip ='54.191.15.21'
+production_host_ip ='35.94.234.225'
 
 .PHONY: production/connect
 production/connect:
