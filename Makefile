@@ -79,4 +79,13 @@ build/api:
 	GOOS=linux GOARCH=amd64 go build -ldflags=${linker_flags} -o=./bin/linux_amd64/api ./cmd/api
 
 ### PRODUCTION
-production_host_ip =''
+production_host_ip ='54.191.15.21'
+
+.PHONY: production/connect
+production/connect:
+	ssh greenlight@${production_host_ip}
+
+.PHONY: production/deploy/api
+	production/deploy/api
+	rsync -rP --delete ./bin/linux_amd64/api ./migrations greenlight@${production_host_ip}:-
+	ssh -t greenlight@${production_host_ip} 'migrate -path ~/migrations -database $$GREENLIGHT_DB_DSN'
